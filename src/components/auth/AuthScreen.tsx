@@ -5,6 +5,7 @@ import { CerosLogo } from '../CerosLogo';
 import {
   Lock,
   AtSign,
+  Mail,
   Building,
   User as UserIcon,
   ArrowRight,
@@ -40,6 +41,7 @@ export const AuthScreen: React.FC = () => {
   // Sign Up
   const [signUpName, setSignUpName] = useState('');
   const [signUpUsername, setSignUpUsername] = useState('');
+  const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpCompany, setSignUpCompany] = useState('');
   const [signUpError, setSignUpError] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export const AuthScreen: React.FC = () => {
   const nameInputId = useId();
   const companyInputId = useId();
   const newUsernameInputId = useId();
+  const newEmailInputId = useId();
   const newPassInputId = useId();
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
@@ -73,6 +76,7 @@ export const AuthScreen: React.FC = () => {
       const res = await signUp({
         name: signUpName,
         username: signUpUsername,
+        email: signUpEmail,
         password: signUpPassword,
         companyName: signUpCompany
       });
@@ -268,6 +272,28 @@ export const AuthScreen: React.FC = () => {
                       className={inputClass}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label htmlFor={newEmailInputId} className={labelClass}>
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className={iconClass} />
+                    <input
+                      id={newEmailInputId}
+                      type="email"
+                      required
+                      autoComplete="email"
+                      value={signUpEmail}
+                      onChange={(e) => setSignUpEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      className={inputClass}
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-[#94A3B8]">
+                    For contact from your administrator. You sign in with your username.
+                  </p>
                 </div>
 
                 <div>

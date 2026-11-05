@@ -18,14 +18,23 @@ interface AuthContextType {
   authNotice: string | null;
   can: (permission: Permission) => boolean;
   signIn: (username: string, password: string) => Promise<Result>;
-  signUp: (data: { name: string; username: string; password: string; companyName: string }) => Promise<Result>;
+  signUp: (data: {
+    name: string;
+    username: string;
+    email: string;
+    password: string;
+    companyName: string;
+  }) => Promise<Result>;
   signOut: () => Promise<void>;
   logActivity: (action: ActivityAction, options?: LogOptions) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_COLUMNS = 'id, username, full_name, user_type, company_name, avatar_initials, is_active, created_at';
+const USER_COLUMNS =
+  'id, username, full_name, email, user_type, company_name, avatar_initials, is_active, created_at';
+
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 async function insertActivity(action: ActivityAction, options?: LogOptions) {
   const { error } = await supabase.from('activity_log_tb').insert({
@@ -129,10 +138,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error || !data.user) {
-      if (error?.message.toLowerCase().includes('email not confirmed')) {
+      const msg = error?.message.toLowerCase() ?? '';
+      if (msg.includes('email not confirmed')) {
         return { success: false, error: 'This account has not been confirmed yet. Please contact your administrator.' };
       }
-      return { success: false, error: 'Incorrect username or password.' };
+      if (!error || msg.includes('invalid login credentials')) {
+        return { success: false, error: 'Incorrect username or password.' };
+      }
+      // Anything else is a server/config problem: show it so it can be fixed
+      return { success: false, error: `Sign-in failed: ${error.message}` };
     }
 
     const profile = await loadProfile(data.user.id);
@@ -147,10 +161,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (data: {
     name: string;
     username: string;
+    email: string;
     password: string;
     companyName: string;
   }): Promise<Result> => {
     const username = data.username.trim();
+    const email = data.email.trim().toLowerCase();
     const name = data.name.trim();
     const company = data.companyName.trim() || 'My Company Inc.';
 
@@ -161,21 +177,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error: 'Username must be 3–30 characters: letters, numbers, spaces, dots, dashes or underscores.'
       };
     }
+    if (!EMAIL_PATTERN.test(email)) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
     if (data.password.length < 8) {
       return { success: false, error: 'Password must be at least 8 characters in length.' };
     }
 
     setAuthNotice(null);
     const { data: res, error } = await supabase.auth.signUp({
+      // Login address is derived from the username; the real email is stored as contact info
       email: usernameToEmail(username),
       password: data.password,
-      options: { data: { username, full_name: name, company_name: company } }
+      options: { data: { username, full_name: name, company_name: company, contact_email: email } }
     });
 
     if (error) {
       const msg = error.message.toLowerCase();
-      if (msg.includes('already registered') || msg.includes('database error')) {
+      if (msg.includes('already registered')) {
         return { success: false, error: `The username "${username}" is already taken.` };
+      }
+      if (msg.includes('database error')) {
+        return { success: false, error: 'That username or email address is already registered.' };
       }
       return { success: false, error: error.message };
     }

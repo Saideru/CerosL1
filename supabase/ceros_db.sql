@@ -21,9 +21,11 @@
 --   * Results are GENERATED columns, so they always match the inputs.
 --   * Passwords live in Supabase Auth (auth.users), never in user_tb.
 --   * Users sign in with a USERNAME. Supabase Auth needs an email, so each
---     username maps to an internal address, e.g.
+--     username maps to an internal login address, e.g.
 --       'Sample Client' -> 'sample.client@cerosl1.local'
 --     The app does the same mapping in src/lib/supabase.ts.
+--   * The user's REAL email address (entered when registering) is stored
+--     in user_tb.email as contact information for the administrator.
 --   * PostgreSQL lowercases unquoted names: "VAT_tb" is vat_tb.
 --
 -- The script is safe to run more than once.
@@ -103,7 +105,7 @@ insert into public.permission_tb (permission, description) values
   ('calculation.view_all',  'View the saved calculations of every client'),
   ('activity.log_own',      'Record own activity in the trace log'),
   ('activity.view_all',     'View the trace logs of every user'),
-  ('profile.update_own',    'Edit own name, company and initials'),
+  ('profile.update_own',    'Edit own name, email, company and initials'),
   ('clients.view',          'View all user accounts'),
   ('clients.manage',        'Activate / deactivate accounts and change their user type')
 on conflict (permission) do update
@@ -135,6 +137,7 @@ create table if not exists public.user_tb (
   username         text not null
                    check (username ~ '^[A-Za-z0-9][A-Za-z0-9 ._-]{2,29}$'),
   full_name        text not null check (length(btrim(full_name)) > 0),
+  email            text,
   user_type        text not null default 'client'
                    references public.user_type_tb (user_type),
   company_name     text not null default 'My Company Inc.',
@@ -144,9 +147,18 @@ create table if not exists public.user_tb (
   updated_at       timestamptz not null default now()
 );
 
--- Usernames are unique regardless of upper/lower case
+-- Upgrade path: adds the email column if user_tb was created without it
+alter table public.user_tb add column if not exists email text;
+
+alter table public.user_tb drop constraint if exists user_tb_email_format;
+alter table public.user_tb add constraint user_tb_email_format
+  check (email is null or email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+-- Usernames and emails are unique regardless of upper/lower case
 create unique index if not exists user_tb_username_key
   on public.user_tb (lower(username));
+create unique index if not exists user_tb_email_key
+  on public.user_tb (lower(email));
 
 -- RBAC helpers (security definer so they can read user_tb under RLS)
 create or replace function public.current_user_type()
@@ -211,7 +223,7 @@ create trigger user_tb_protect
   for each row execute function public.protect_user_tb();
 
 -- Auto-create the profile when someone signs up.
--- The app passes username, full_name, company_name in signUp() metadata.
+-- The app passes username, full_name, company_name, contact_email in signUp() metadata.
 -- New accounts are ALWAYS 'client'; only an admin can promote them.
 create or replace function public.handle_new_user()
 returns trigger
@@ -225,6 +237,7 @@ declare
   v_name     text := coalesce(nullif(btrim(new.raw_user_meta_data ->> 'full_name'), ''), v_username);
   v_company  text := coalesce(nullif(btrim(new.raw_user_meta_data ->> 'company_name'), ''),
                               'My Company Inc.');
+  v_email    text := nullif(lower(btrim(new.raw_user_meta_data ->> 'contact_email')), '');
   v_parts    text[] := regexp_split_to_array(v_name, '\s+');
   v_initials text;
 begin
@@ -234,8 +247,8 @@ begin
     v_initials := upper(left(v_name, 2));
   end if;
 
-  insert into public.user_tb (id, username, full_name, user_type, company_name, avatar_initials)
-  values (new.id, v_username, v_name, 'client', v_company, v_initials);
+  insert into public.user_tb (id, username, full_name, email, user_type, company_name, avatar_initials)
+  values (new.id, v_username, v_name, v_email, 'client', v_company, v_initials);
 
   return new;
 end;
@@ -536,7 +549,7 @@ create policy "rbac: read role permissions" on public.user_type_permission_tb fo
 -- user_tb: see your own profile; admins (clients.view) see everyone.
 -- Profiles are created only by the sign-up trigger, never deleted from the app.
 revoke insert, update, delete on public.user_tb from authenticated;
-grant update (full_name, company_name, avatar_initials, user_type, is_active, username)
+grant update (full_name, email, company_name, avatar_initials, user_type, is_active, username)
   on public.user_tb to authenticated;  -- column changes are policed by protect_user_tb()
 
 drop policy if exists "user_tb: read own profile"   on public.user_tb;
@@ -616,6 +629,8 @@ $$;
 --     Sample Client  / Numbers2020  -> client
 --     Change these passwords after the first sign-in
 --     (Supabase Dashboard -> Authentication -> Users).
+--     Their contact email is left empty; set it later with e.g.
+--       update public.user_tb set email = 'you@example.com' where username = 'Kamteam';
 -- =====================================================================
 do $$
 declare

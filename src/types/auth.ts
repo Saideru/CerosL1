@@ -20,6 +20,8 @@ export interface User {
   id: string;
   username: string;
   name: string;
+  /** Contact email entered at registration (not used for sign-in). */
+  email?: string;
   userType: UserType;
   companyName: string;
   avatarInitials?: string;
@@ -32,6 +34,7 @@ export interface UserRow {
   id: string;
   username: string;
   full_name: string;
+  email: string | null;
   user_type: UserType;
   company_name: string;
   avatar_initials: string | null;
@@ -44,6 +47,7 @@ export function userFromRow(row: UserRow): User {
     id: row.id,
     username: row.username,
     name: row.full_name,
+    email: row.email ?? undefined,
     userType: row.user_type,
     companyName: row.company_name,
     avatarInitials: row.avatar_initials ?? undefined,

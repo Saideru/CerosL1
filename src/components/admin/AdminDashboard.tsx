@@ -99,7 +99,7 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
     const [usersRes, logsRes] = await Promise.all([
       supabase
         .from('user_tb')
-        .select('id, username, full_name, user_type, company_name, avatar_initials, is_active, created_at')
+        .select('id, username, full_name, email, user_type, company_name, avatar_initials, is_active, created_at')
         .order('created_at', { ascending: false }),
       supabase
         .from('activity_log_tb')
@@ -213,6 +213,7 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.username.toLowerCase().includes(q) ||
+        (u.email ?? '').toLowerCase().includes(q) ||
         u.companyName.toLowerCase().includes(q)
     );
   }, [users, clientSearch]);
@@ -465,7 +466,7 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
                   type="search"
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
-                  placeholder="Search name, username or company"
+                  placeholder="Search name, username, email or company"
                   className={`${inputBase} w-full pl-9`}
                 />
               </div>
@@ -505,6 +506,14 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
                                 {isSelf && <span className="ml-1.5 text-[11px] font-normal text-[#64748B]">(you)</span>}
                               </div>
                               <div className="text-[12px] text-[#64748B] dark:text-[#94A3B8] truncate">@{u.username}</div>
+                              {u.email && (
+                                <a
+                                  href={`mailto:${u.email}`}
+                                  className="block text-[12px] text-[#047857] dark:text-[#34D399] hover:underline truncate"
+                                >
+                                  {u.email}
+                                </a>
+                              )}
                             </div>
                           </div>
                         </td>
