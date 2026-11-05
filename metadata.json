@@ -1,0 +1,6 @@
+{
+  "name": "CerosL1 Calculator",
+  "description": "Executive accounting calculator for businesses using the CerosL1 Ledger. Includes VAT, Invoice & Bill preview, Payment settlement, Journal Balancer, Statement Check, and Aging with integer-centavo accuracy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

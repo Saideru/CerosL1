@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --slate: #0F172A;
+  --slate-2: #1E293B;
+  --ice: #F8FAFC;
+  --emerald: #059669;
+  --emerald-strong: #047857;
+  --emerald-bright: #10B981;
+  --emerald-soft: rgba(5, 150, 105, 0.12);
+  --bg: #F1F5F9;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text: #0F172A;
+  --muted: #475569;
+  --faint: #94A3B8;
+  --danger: #DC2626;
+  --warn: #B45309;
+  --info: #2563EB;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+.dark {
+  --bg: #0B1220;
+  --surface: #111B2E;
+  --surface-2: #16233A;
+  --border: #1E293B;
+  --border-strong: #334155;
+  --text: #E2E8F0;
+  --muted: #94A3B8;
+  --faint: #64748B;
+  --danger: #F87171;
+  --warn: #FBBF24;
+  --info: #60A5FA;
+}
+
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom utility for financial numbers */
+.num-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Scrollbar styling for data tables */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+}
