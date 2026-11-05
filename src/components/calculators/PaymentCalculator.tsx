@@ -151,7 +151,7 @@ export const PaymentCalculator: React.FC = () => {
 
           {/* Doc Type Toggle */}
           <div>
-            <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-2 uppercase tracking-wider">
+            <label data-tour="pay-direction" className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-2 uppercase tracking-wider">
               Document Direction
             </label>
             <div className="grid grid-cols-2 gap-2 p-1 bg-[#F1F5F9] dark:bg-[#1E293B] rounded-[8px]">
@@ -187,7 +187,7 @@ export const PaymentCalculator: React.FC = () => {
           {/* Reference & Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
+              <label data-tour="pay-reference" className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
                 Reference
               </label>
               <input
@@ -198,7 +198,7 @@ export const PaymentCalculator: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
+              <label data-tour="pay-date" className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
                 Payment Date
               </label>
               <input
@@ -212,7 +212,7 @@ export const PaymentCalculator: React.FC = () => {
 
           {/* Document Total */}
           <div>
-            <label
+            <label data-tour="pay-total"
               htmlFor={totalInputId}
               className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider"
             >
@@ -230,7 +230,7 @@ export const PaymentCalculator: React.FC = () => {
 
           {/* Amount Already Paid */}
           <div>
-            <label
+            <label data-tour="pay-paid"
               htmlFor={paidInputId}
               className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider"
             >
@@ -248,7 +248,7 @@ export const PaymentCalculator: React.FC = () => {
 
           {/* This Payment */}
           <div>
-            <label
+            <label data-tour="pay-payment"
               htmlFor={paymentInputId}
               className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider"
             >
@@ -298,7 +298,7 @@ export const PaymentCalculator: React.FC = () => {
             </div>
 
             {/* Document Settlement Status Badge */}
-            <div className="bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] flex flex-col justify-between">
+            <div data-tour="pay-status" className="bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] flex flex-col justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#475569] dark:text-[#94A3B8] block mb-2">
                 Document Status
               </span>

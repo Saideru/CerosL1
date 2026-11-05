@@ -9,6 +9,7 @@ import { JournalBalancer } from './components/calculators/JournalBalancer';
 import { StatementCheck } from './components/calculators/StatementCheck';
 import { AgingCalculator } from './components/calculators/AgingCalculator';
 import { AcceptanceTestModal } from './components/AcceptanceTestModal';
+import { CalculatorTour, HelpButton } from './components/CalculatorHelp';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { useTheme } from './hooks/useTheme';
 import { USER_TYPE_LABELS } from './types/auth';
@@ -87,6 +88,7 @@ function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
   const [theme, setTheme] = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [testModalOpen, setTestModalOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   const selectCalculator = (id: CalculatorId) => {
     if (id !== activeCalc) {
@@ -136,6 +138,11 @@ function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
           >
             <ShieldCheck className="w-5 h-5" />
           </button>
+          <HelpButton
+            onClick={() => setTourOpen(true)}
+            label={currentNav.label}
+            className="text-[#34D399] bg-transparent border-[#34D399]/40"
+          />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -444,6 +451,7 @@ function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Acceptance Tests</span>
             </button>
+            <HelpButton onClick={() => setTourOpen(true)} label={currentNav.label} />
           </div>
         </div>
 
@@ -470,6 +478,9 @@ function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
           </div>
         </footer>
       </main>
+
+      {/* Step-by-step guide for the open calculator */}
+      <CalculatorTour calculator={activeCalc} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
 
       {/* Acceptance Tests Modal */}
       <AcceptanceTestModal

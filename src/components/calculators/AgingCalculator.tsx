@@ -157,7 +157,7 @@ export const AgingCalculator: React.FC = () => {
       </div>
 
       {/* Schedule type */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] text-[13px]">
+      <div data-tour="ag-type" className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] text-[13px]">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-[#475569] dark:text-[#94A3B8] text-[12px] uppercase tracking-wider flex items-center gap-1.5 mr-1">
             <Clock className="w-3.5 h-3.5 text-[#059669]" /> Schedule Type:
@@ -190,7 +190,7 @@ export const AgingCalculator: React.FC = () => {
       </div>
 
       {/* KPI Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div data-tour="ag-kpis" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#475569] dark:text-[#94A3B8] block mb-2">
             Total Outstanding
@@ -233,7 +233,7 @@ export const AgingCalculator: React.FC = () => {
         {/* As-Of Date Configuration */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0] dark:border-[#1E293B]">
           <div className="flex items-center gap-3">
-            <label className="text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] uppercase tracking-wider whitespace-nowrap">
+            <label data-tour="ag-asof" className="text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] uppercase tracking-wider whitespace-nowrap">
               As-Of Evaluation Date:
             </label>
             <div className="relative">
@@ -253,7 +253,7 @@ export const AgingCalculator: React.FC = () => {
         </div>
 
         {/* Schedule Table */}
-        <div className="overflow-x-auto custom-scrollbar border border-[#E2E8F0] dark:border-[#1E293B] rounded-[8px]">
+        <div data-tour="ag-table" className="overflow-x-auto custom-scrollbar border border-[#E2E8F0] dark:border-[#1E293B] rounded-[8px]">
           <table className="w-full text-left border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#0F172A] text-[#F8FAFC]">
@@ -415,7 +415,7 @@ export const AgingCalculator: React.FC = () => {
         </div>
 
         {/* Add Row Button */}
-        <div className="pt-2">
+        <div data-tour="ag-add" className="pt-2">
           <button
             type="button"
             onClick={handleAddRow}

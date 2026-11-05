@@ -87,7 +87,7 @@ export const VatCalculator: React.FC = () => {
           </h3>
 
           {/* Mode Switcher */}
-          <div>
+          <div data-tour="vat-mode">
             <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-2 uppercase tracking-wider">
               Calculation Mode
             </label>
@@ -118,7 +118,7 @@ export const VatCalculator: React.FC = () => {
           </div>
 
           {/* Amount Input */}
-          <div>
+          <div data-tour="vat-amount">
             <label
               htmlFor={inputId}
               className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider"
@@ -155,7 +155,7 @@ export const VatCalculator: React.FC = () => {
           </div>
 
           {/* Tax Rate Options (All three separate labelled options) */}
-          <div>
+          <div data-tour="vat-rate">
             <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-2 uppercase tracking-wider">
               Tax Classification
             </label>
@@ -203,7 +203,7 @@ export const VatCalculator: React.FC = () => {
         {/* Right Output KPI & Breakdown */}
         <div className="lg:col-span-7 space-y-6">
           {/* KPI Tiles */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div data-tour="vat-results" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Net Tile */}
             <div className="bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#475569] dark:text-[#94A3B8] block mb-2">
@@ -245,7 +245,7 @@ export const VatCalculator: React.FC = () => {
           </div>
 
           {/* Ledger Calculation Breakdown Card */}
-          <div className="bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+          <div data-tour="vat-breakdown" className="bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
             <h4 className="text-[15px] font-bold text-[#0F172A] dark:text-[#E2E8F0] mb-4">
               Calculation Breakdown & Formula
             </h4>

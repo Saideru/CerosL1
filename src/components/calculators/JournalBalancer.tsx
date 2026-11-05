@@ -243,7 +243,7 @@ export const JournalBalancer: React.FC = () => {
         {/* Journal Meta */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-3 border-b border-[#E2E8F0] dark:border-[#1E293B]">
           <div>
-            <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
+            <label data-tour="jrn-date" className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
               Posting Date
             </label>
             <input
@@ -254,7 +254,7 @@ export const JournalBalancer: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
+            <label data-tour="jrn-ref" className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
               Reference
             </label>
             <input
@@ -273,7 +273,7 @@ export const JournalBalancer: React.FC = () => {
         </div>
 
         {/* Rows Table */}
-        <div className="overflow-x-auto custom-scrollbar border border-[#E2E8F0] dark:border-[#1E293B] rounded-[8px]">
+        <div data-tour="jrn-rows" className="overflow-x-auto custom-scrollbar border border-[#E2E8F0] dark:border-[#1E293B] rounded-[8px]">
           <table className="w-full text-left border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#0F172A] text-[#F8FAFC]">
@@ -414,7 +414,7 @@ export const JournalBalancer: React.FC = () => {
 
         {/* Add Row Button & Status Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-          <button
+          <button data-tour="jrn-add"
             type="button"
             onClick={handleAddRow}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#0F172A] dark:text-[#E2E8F0] bg-[#F1F5F9] dark:bg-[#1E293B] hover:bg-[#E2E8F0] dark:hover:bg-[#334155] border border-[#CBD5E1] dark:border-[#334155] rounded-[8px] transition-colors self-start"
@@ -424,7 +424,7 @@ export const JournalBalancer: React.FC = () => {
           </button>
 
           {/* Balance Indicator Status Callout */}
-          <div className="flex items-center gap-3">
+          <div data-tour="jrn-status" className="flex items-center gap-3">
             <div className="text-right text-[13px]">
               <span className="text-[#475569] dark:text-[#94A3B8] mr-2">Net Difference:</span>
               <span className="font-mono num-tabular font-bold text-[#0F172A] dark:text-[#E2E8F0]">

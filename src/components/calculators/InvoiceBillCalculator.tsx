@@ -355,7 +355,7 @@ export const InvoiceBillCalculator: React.FC = () => {
       <div className="bg-[#FFFFFF] dark:bg-[#111B2E] border border-[#E2E8F0] dark:border-[#1E293B] rounded-[12px] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)] space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           {/* Invoice / Bill Toggle */}
-          <div className="flex items-center gap-2 p-1 bg-[#F1F5F9] dark:bg-[#1E293B] rounded-[8px] w-full sm:w-auto">
+          <div data-tour="inv-type" className="flex items-center gap-2 p-1 bg-[#F1F5F9] dark:bg-[#1E293B] rounded-[8px] w-full sm:w-auto">
             <button
               type="button"
               onClick={() => handleDocTypeToggle('invoice')}
@@ -390,7 +390,7 @@ export const InvoiceBillCalculator: React.FC = () => {
         {/* Metadata Inputs (Reference, Contact, Issue Date, Due Date) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
+            <label data-tour="inv-number" className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
               {docType === 'invoice' ? 'Invoice Number' : 'Bill Number'}
             </label>
             <div className="relative">
@@ -406,7 +406,7 @@ export const InvoiceBillCalculator: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
+            <label data-tour="inv-contact" className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider">
               {docType === 'invoice' ? 'Customer' : 'Supplier'}
             </label>
             <input
@@ -419,7 +419,7 @@ export const InvoiceBillCalculator: React.FC = () => {
           </div>
 
           <div>
-            <label
+            <label data-tour="inv-issue"
               htmlFor={issueDateId}
               className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider"
             >
@@ -438,7 +438,7 @@ export const InvoiceBillCalculator: React.FC = () => {
           </div>
 
           <div>
-            <label
+            <label data-tour="inv-due"
               htmlFor={dueDateId}
               className="block text-[12px] font-semibold text-[#475569] dark:text-[#94A3B8] mb-1.5 uppercase tracking-wider"
             >
@@ -467,7 +467,7 @@ export const InvoiceBillCalculator: React.FC = () => {
         </div>
 
         {/* Line Items Table */}
-        <div className="space-y-3">
+        <div data-tour="inv-lines" className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-[15px] font-bold text-[#0F172A] dark:text-[#E2E8F0]">
               Line Items
@@ -628,7 +628,7 @@ export const InvoiceBillCalculator: React.FC = () => {
             </button>
 
             {/* Subtotals & Grand Total Summary */}
-            <div className="w-full max-w-sm space-y-1.5 bg-[#F8FAFC] dark:bg-[#16233A]/60 p-3 rounded-[8px] border border-[#E2E8F0] dark:border-[#1E293B]">
+            <div data-tour="inv-totals" className="w-full max-w-sm space-y-1.5 bg-[#F8FAFC] dark:bg-[#16233A]/60 p-3 rounded-[8px] border border-[#E2E8F0] dark:border-[#1E293B]">
               <div className="flex justify-between text-[13px] text-[#475569] dark:text-[#94A3B8]">
                 <span>Net Subtotal:</span>
                 <span className="font-mono num-tabular font-semibold text-[#0F172A] dark:text-[#E2E8F0]">
