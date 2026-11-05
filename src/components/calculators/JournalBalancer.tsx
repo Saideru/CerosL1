@@ -457,6 +457,7 @@ export const JournalBalancer: React.FC = () => {
 
       {/* CSV Export & Journal Preview Table */}
       <JournalPreviewTable
+        calculator="balancer"
         title="Balanced Journal Posting Specification"
         subtitle={`Standard CerosL1 general ledger format ready for export · Reference ${reference}`}
         lines={previewLines}

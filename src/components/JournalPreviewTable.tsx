@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { JournalLineItem } from '../types/accounting';
 import { formatPHP, formatPlainAmount } from '../utils/money';
 import { Copy, Check, Download, BookOpen } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { CalculatorKey } from '../types/activity';
 
 interface JournalPreviewTableProps {
+  /** Which calculator this preview belongs to (recorded in the trace log). */
+  calculator?: CalculatorKey;
   title?: string;
   subtitle?: string;
   lines: JournalLineItem[];
@@ -26,6 +30,7 @@ export function buildCsvString(lines: JournalLineItem[]): string {
 }
 
 export const JournalPreviewTable: React.FC<JournalPreviewTableProps> = ({
+  calculator,
   title = 'General Ledger Posting Preview',
   subtitle = 'Double-entry journal representation generated for CerosL1 Ledger',
   lines,
@@ -33,6 +38,7 @@ export const JournalPreviewTable: React.FC<JournalPreviewTableProps> = ({
   showDateAndRef = true
 }) => {
   const [copied, setCopied] = useState(false);
+  const { logActivity } = useAuth();
 
   const totalDebits = lines.reduce((acc, l) => acc + l.debitCentavos, 0);
   const totalCredits = lines.reduce((acc, l) => acc + l.creditCentavos, 0);
@@ -41,6 +47,7 @@ export const JournalPreviewTable: React.FC<JournalPreviewTableProps> = ({
   const handleCopyCsv = async () => {
     if (lines.length === 0) return;
     const csv = buildCsvString(lines);
+    logActivity('copy_csv', { calculator, details: { lines: lines.length } });
     try {
       await navigator.clipboard.writeText(csv);
       setCopied(true);
@@ -61,6 +68,7 @@ export const JournalPreviewTable: React.FC<JournalPreviewTableProps> = ({
   const handleDownloadCsv = () => {
     if (lines.length === 0) return;
     const csv = buildCsvString(lines);
+    logActivity('export_csv', { calculator, details: { lines: lines.length } });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

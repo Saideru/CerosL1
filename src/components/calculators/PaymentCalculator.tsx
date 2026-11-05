@@ -367,6 +367,7 @@ export const PaymentCalculator: React.FC = () => {
 
       {/* Live Journal Preview */}
       <JournalPreviewTable
+        calculator="payment"
         title={docType === 'invoice' ? 'Bank Receipt Journal Preview' : 'Bank Disbursement Journal Preview'}
         subtitle={`Cash ledger posting for ${reference} payment`}
         lines={journalLines}

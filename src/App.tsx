@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { CerosLogo } from './components/CerosLogo';
@@ -9,6 +9,10 @@ import { JournalBalancer } from './components/calculators/JournalBalancer';
 import { StatementCheck } from './components/calculators/StatementCheck';
 import { AgingCalculator } from './components/calculators/AgingCalculator';
 import { AcceptanceTestModal } from './components/AcceptanceTestModal';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { useTheme } from './hooks/useTheme';
+import { USER_TYPE_LABELS } from './types/auth';
+import { CalculatorKey } from './types/activity';
 import {
   Percent,
   FileSpreadsheet,
@@ -25,10 +29,11 @@ import {
   ChevronRight,
   Info,
   LogOut,
-  Building2
+  Building2,
+  LayoutDashboard
 } from 'lucide-react';
 
-export type CalculatorId = 'vat' | 'invoice_bill' | 'payment' | 'balancer' | 'statement' | 'aging';
+export type CalculatorId = CalculatorKey;
 
 interface NavItem {
   id: CalculatorId;
@@ -76,43 +81,33 @@ const NAV_ITEMS: NavItem[] = [
   }
 ];
 
-function CalculatorWorkspace() {
-  const { user, signOut } = useAuth();
+function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
+  const { user, signOut, logActivity } = useAuth();
   const [activeCalc, setActiveCalc] = useState<CalculatorId>('vat');
-  const [theme, setTheme] = useState<'system' | 'light' | 'dark'>('system');
+  const [theme, setTheme] = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [testModalOpen, setTestModalOpen] = useState(false);
 
-  // Theme management: sync with system preference & manual override
+  const selectCalculator = (id: CalculatorId) => {
+    if (id !== activeCalc) {
+      logActivity('open_calculator', { calculator: id });
+    }
+    setActiveCalc(id);
+    setMobileMenuOpen(false);
+  };
+
+  const openTests = () => {
+    logActivity('run_acceptance_tests');
+    setTestModalOpen(true);
+  };
+
+  const roleLabel = user ? USER_TYPE_LABELS[user.userType] : '';
+
+  // Record the calculator shown when the workspace first opens
   useEffect(() => {
-    const root = document.documentElement;
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const applyTheme = () => {
-      if (theme === 'dark') {
-        root.classList.add('dark');
-      } else if (theme === 'light') {
-        root.classList.remove('dark');
-      } else {
-        if (mediaQuery.matches) {
-          root.classList.add('dark');
-        } else {
-          root.classList.remove('dark');
-        }
-      }
-    };
-
-    applyTheme();
-
-    const handleSystemChange = () => {
-      if (theme === 'system') {
-        applyTheme();
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleSystemChange);
-    return () => mediaQuery.removeEventListener('change', handleSystemChange);
-  }, [theme]);
+    logActivity('open_calculator', { calculator: 'vat' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const currentNav = NAV_ITEMS.find((n) => n.id === activeCalc) ?? NAV_ITEMS[0];
 
@@ -135,7 +130,7 @@ function CalculatorWorkspace() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setTestModalOpen(true)}
+            onClick={openTests}
             className="p-1.5 text-[#34D399] hover:bg-[#1E293B] rounded-[6px]"
             title="Acceptance Tests"
           >
@@ -165,11 +160,11 @@ function CalculatorWorkspace() {
                 <div className="text-[13px] font-bold text-[#F8FAFC] leading-none">
                   {user?.name}
                 </div>
-                <div className="text-[11px] text-[#94A3B8] mt-0.5">{user?.email}</div>
+                <div className="text-[11px] text-[#94A3B8] mt-0.5">@{user?.username}</div>
               </div>
             </div>
             <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#059669]/20 text-[#34D399] border border-[#059669]/30">
-              {user?.role}
+              {roleLabel}
             </span>
           </div>
 
@@ -183,10 +178,7 @@ function CalculatorWorkspace() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => {
-                  setActiveCalc(item.id);
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => selectCalculator(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-[13px] font-medium transition-colors text-left ${
                   isActive
                     ? 'bg-[#1E293B] text-[#34D399] font-semibold'
@@ -233,13 +225,24 @@ function CalculatorWorkspace() {
             </div>
           </div>
 
+          {onOpenAdmin && (
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-[#1E293B] text-[#34D399] rounded-[8px] text-[13px] font-semibold"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Back to Admin Console</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={signOut}
             className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-[#DC2626]/10 text-[#F87171] hover:bg-[#DC2626]/20 rounded-[8px] text-[13px] font-semibold transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign out (SOP-02)</span>
+            <span>Sign out</span>
           </button>
         </div>
       )}
@@ -291,7 +294,7 @@ function CalculatorWorkspace() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveCalc(item.id)}
+                onClick={() => selectCalculator(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-[13px] transition-colors text-left group ${
                   isActive
                     ? 'bg-[#1E293B] text-[#34D399] font-semibold shadow-xs'
@@ -328,21 +331,32 @@ function CalculatorWorkspace() {
                   <div className="text-[12px] font-bold text-[#F8FAFC] truncate">
                     {user?.name}
                   </div>
-                  <div className="text-[11px] text-[#94A3B8] truncate">{user?.email}</div>
+                  <div className="text-[11px] text-[#94A3B8] truncate">@{user?.username}</div>
                 </div>
               </div>
 
               {/* Role badge */}
               <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#059669]/20 text-[#34D399] border border-[#059669]/30 shrink-0">
-                {user?.role}
+                {roleLabel}
               </span>
             </div>
           </div>
 
+          {onOpenAdmin && (
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="w-full flex items-center gap-2 px-3 py-2 bg-[#059669] hover:bg-[#047857] text-white rounded-[8px] text-[12px] font-semibold transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Back to Admin Console</span>
+            </button>
+          )}
+
           {/* Acceptance Test Inspector Button */}
           <button
             type="button"
-            onClick={() => setTestModalOpen(true)}
+            onClick={openTests}
             className="w-full flex items-center justify-between px-3 py-2 bg-[#1E293B] hover:bg-[#334155] text-[#34D399] border border-[#34D399]/30 rounded-[8px] text-[12px] font-semibold transition-colors"
           >
             <div className="flex items-center gap-2">
@@ -419,12 +433,12 @@ function CalculatorWorkspace() {
             </div>
 
             <div className="text-[12px] text-[#475569] dark:text-[#94A3B8]">
-              Role: <strong className="text-[#0F172A] dark:text-[#E2E8F0]">{user?.role}</strong>
+              Account: <strong className="text-[#0F172A] dark:text-[#E2E8F0]">{roleLabel}</strong>
             </div>
 
             <button
               type="button"
-              onClick={() => setTestModalOpen(true)}
+              onClick={openTests}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#047857] dark:text-[#34D399] bg-[#059669]/10 hover:bg-[#059669]/20 border border-[#059669]/30 rounded-[8px] transition-colors"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -451,7 +465,7 @@ function CalculatorWorkspace() {
               <span>Calculations only. Nothing is posted to the ledger.</span>
             </div>
             <div className="text-[11px] text-[#94A3B8]">
-              Signed in as {user?.email} ({user?.role}) · CerosL1 Ledger Companion
+              Signed in as @{user?.username} ({roleLabel}) · CerosL1 Ledger Companion
             </div>
           </div>
         </footer>
@@ -461,7 +475,7 @@ function CalculatorWorkspace() {
       <AcceptanceTestModal
         isOpen={testModalOpen}
         onClose={() => setTestModalOpen(false)}
-        onSelectCalculator={(id) => setActiveCalc(id as CalculatorId)}
+        onSelectCalculator={(id) => selectCalculator(id as CalculatorId)}
       />
     </div>
   );
@@ -483,9 +497,25 @@ function AppWithAuth() {
     );
   }
 
-  // If unauthenticated, show the Login and Register screen first
+  // If unauthenticated, show the sign-in screen first
   if (!user) {
     return <AuthScreen />;
+  }
+
+  // RBAC routing: admins land on the admin console, clients on the calculators
+  return <RoleRouter />;
+}
+
+function RoleRouter() {
+  const { user } = useAuth();
+  const [adminView, setAdminView] = useState<'console' | 'calculators'>('console');
+
+  if (user?.userType === 'admin') {
+    return adminView === 'console' ? (
+      <AdminDashboard onOpenCalculators={() => setAdminView('calculators')} />
+    ) : (
+      <CalculatorWorkspace onOpenAdmin={() => setAdminView('console')} />
+    );
   }
 
   return <CalculatorWorkspace />;

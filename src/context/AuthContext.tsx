@@ -1,166 +1,211 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types/auth';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { supabase, isSupabaseConfigured, usernameToEmail, USERNAME_PATTERN } from '../lib/supabase';
+import { Permission, User, UserRow, userFromRow } from '../types/auth';
+import { ActivityAction, CalculatorKey } from '../types/activity';
+
+type Result = { success: boolean; error?: string; notice?: string };
+
+interface LogOptions {
+  calculator?: CalculatorKey;
+  details?: Record<string, unknown>;
+}
 
 interface AuthContextType {
   user: User | null;
+  permissions: Permission[];
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signUp: (data: { name: string; email: string; password: string; companyName: string }) => Promise<{ success: boolean; error?: string }>;
-  signOut: () => void;
+  /** Message shown on the sign-in screen after a forced sign-out (e.g. deactivated account). */
+  authNotice: string | null;
+  can: (permission: Permission) => boolean;
+  signIn: (username: string, password: string) => Promise<Result>;
+  signUp: (data: { name: string; username: string; password: string; companyName: string }) => Promise<Result>;
+  signOut: () => Promise<void>;
+  logActivity: (action: ActivityAction, options?: LogOptions) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY_CURRENT_USER = 'cerosl1_current_user_session';
-const STORAGE_KEY_USERS_DB = 'cerosl1_registered_users_db';
+const USER_COLUMNS = 'id, username, full_name, user_type, company_name, avatar_initials, is_active, created_at';
 
-// IDs of the demo accounts that earlier builds seeded into localStorage.
-const LEGACY_DEMO_USER_IDS = ['usr_owner_1', 'usr_admin_1', 'usr_viewer_1'];
+async function insertActivity(action: ActivityAction, options?: LogOptions) {
+  const { error } = await supabase.from('activity_log_tb').insert({
+    action,
+    calculator: options?.calculator ?? null,
+    details: options?.details ?? {},
+    user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 300) : null
+  });
+  if (error) console.warn('Activity log failed:', error.message);
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(isSupabaseConfigured);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const loadedUserId = useRef<string | null>(null);
 
-  // Load existing session and user database on startup
-  useEffect(() => {
-    try {
-      // Purge demo accounts seeded by earlier builds
-      const storedUsers = localStorage.getItem(STORAGE_KEY_USERS_DB);
-      if (storedUsers) {
-        const users: User[] = JSON.parse(storedUsers);
-        const realUsers = users.filter(u => !LEGACY_DEMO_USER_IDS.includes(u.id));
-        if (realUsers.length !== users.length) {
-          localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(realUsers));
-        }
-      }
+  /** Loads user_tb profile + RBAC permissions for the signed-in auth user. */
+  const loadProfile = useCallback(async (authUserId: string): Promise<User | null> => {
+    const { data: row, error } = await supabase
+      .from('user_tb')
+      .select(USER_COLUMNS)
+      .eq('id', authUserId)
+      .maybeSingle<UserRow>();
 
-      // Check for active session
-      const storedSession = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
-      if (storedSession) {
-        const parsed: User = JSON.parse(storedSession);
-        if (LEGACY_DEMO_USER_IDS.includes(parsed.id)) {
-          localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
-        } else {
-          setUser(parsed);
-        }
-      }
-    } catch {
-      // In case of storage issues, stay logged out
-      setUser(null);
-    } finally {
-      setIsLoading(false);
+    if (error || !row) {
+      await supabase.auth.signOut();
+      setAuthNotice('Your profile could not be loaded. Please contact your administrator.');
+      return null;
     }
+
+    if (!row.is_active) {
+      await supabase.auth.signOut();
+      setAuthNotice('This account has been deactivated. Please contact your administrator.');
+      return null;
+    }
+
+    const { data: permRows } = await supabase
+      .from('user_type_permission_tb')
+      .select('permission')
+      .eq('user_type', row.user_type);
+
+    const profile = userFromRow(row);
+    loadedUserId.current = profile.id;
+    setPermissions((permRows ?? []).map((p: { permission: Permission }) => p.permission));
+    setUser(profile);
+    return profile;
   }, []);
 
-  const getUsersFromDb = (): User[] => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY_USERS_DB);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  };
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
 
-  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const trimmedEmail = email.trim().toLowerCase();
-    
-    if (!trimmedEmail) {
-      return { success: false, error: 'Email address is required.' };
-    }
-    if (!password) {
-      return { success: false, error: 'Password is required.' };
-    }
-    if (password.length < 8) {
-      return { success: false, error: 'Password must be at least 8 characters in length.' };
+    let cancelled = false;
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (cancelled) return;
+      if (data.session) {
+        await loadProfile(data.session.user.id);
+      }
+      if (!cancelled) setIsLoading(false);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        loadedUserId.current = null;
+        setUser(null);
+        setPermissions([]);
+        return;
+      }
+      // Defer Supabase calls out of the auth callback (avoids a client deadlock)
+      if (loadedUserId.current !== session.user.id) {
+        setTimeout(() => {
+          if (!cancelled) loadProfile(session.user.id);
+        }, 0);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, [loadProfile]);
+
+  const can = useCallback((permission: Permission) => permissions.includes(permission), [permissions]);
+
+  const logActivity = useCallback((action: ActivityAction, options?: LogOptions) => {
+    if (!isSupabaseConfigured || !loadedUserId.current) return;
+    void insertActivity(action, options);
+  }, []);
+
+  const signIn = async (username: string, password: string): Promise<Result> => {
+    const trimmed = username.trim();
+    if (!trimmed) return { success: false, error: 'Username is required.' };
+    if (!password) return { success: false, error: 'Password is required.' };
+
+    setAuthNotice(null);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(trimmed),
+      password
+    });
+
+    if (error || !data.user) {
+      if (error?.message.toLowerCase().includes('email not confirmed')) {
+        return { success: false, error: 'This account has not been confirmed yet. Please contact your administrator.' };
+      }
+      return { success: false, error: 'Incorrect username or password.' };
     }
 
-    const users = getUsersFromDb();
-    const matchedUser = users.find(u => u.email.toLowerCase() === trimmedEmail);
-
-    if (!matchedUser) {
-      // Error message per CerosL1 SOP-02 and Section 7 troubleshooting: "No CerosL1 account uses ..."
-      return {
-        success: false,
-        error: `No CerosL1 account uses ${trimmedEmail}. Check your email address or create an account.`
-      };
+    const profile = await loadProfile(data.user.id);
+    if (!profile) {
+      return { success: false, error: 'This account cannot sign in. Please contact your administrator.' };
     }
 
-    // Successful sign in
-    setUser(matchedUser);
-    localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(matchedUser));
+    void insertActivity('sign_in');
     return { success: true };
   };
 
   const signUp = async (data: {
     name: string;
-    email: string;
+    username: string;
     password: string;
     companyName: string;
-  }): Promise<{ success: boolean; error?: string }> => {
-    const trimmedEmail = data.email.trim().toLowerCase();
-    const trimmedName = data.name.trim();
-    const trimmedCompany = data.companyName.trim() || 'My Company Inc.';
+  }): Promise<Result> => {
+    const username = data.username.trim();
+    const name = data.name.trim();
+    const company = data.companyName.trim() || 'My Company Inc.';
 
-    if (!trimmedName) {
-      return { success: false, error: 'Full name is required.' };
-    }
-    if (!trimmedEmail || !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      return { success: false, error: 'Please enter a valid work email address.' };
+    if (!name) return { success: false, error: 'Full name is required.' };
+    if (!USERNAME_PATTERN.test(username)) {
+      return {
+        success: false,
+        error: 'Username must be 3–30 characters: letters, numbers, spaces, dots, dashes or underscores.'
+      };
     }
     if (data.password.length < 8) {
       return { success: false, error: 'Password must be at least 8 characters in length.' };
     }
 
-    const users = getUsersFromDb();
-    const existing = users.find(u => u.email.toLowerCase() === trimmedEmail);
-    if (existing) {
+    setAuthNotice(null);
+    const { data: res, error } = await supabase.auth.signUp({
+      email: usernameToEmail(username),
+      password: data.password,
+      options: { data: { username, full_name: name, company_name: company } }
+    });
+
+    if (error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('already registered') || msg.includes('database error')) {
+        return { success: false, error: `The username "${username}" is already taken.` };
+      }
+      return { success: false, error: error.message };
+    }
+
+    // Supabase returns a user without a session when "Confirm email" is on
+    if (!res.session || !res.user) {
       return {
-        success: false,
-        error: `An account already exists for ${trimmedEmail}. Please sign in instead.`
+        success: true,
+        notice: 'Account created. An administrator must confirm it before you can sign in.'
       };
     }
 
-    // Get initials
-    const nameParts = trimmedName.split(' ');
-    const initials = nameParts.length > 1
-      ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-      : trimmedName.slice(0, 2).toUpperCase();
-
-    // Per SOP-01: First user for a newly registered company becomes Owner
-    const newUser: User = {
-      id: `usr_${Date.now()}`,
-      name: trimmedName,
-      email: trimmedEmail,
-      role: 'Owner',
-      companyName: trimmedCompany,
-      avatarInitials: initials
-    };
-
-    const updatedUsers = [...users, newUser];
-    localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(updatedUsers));
-
-    // Sign in the newly registered user
-    setUser(newUser);
-    localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(newUser));
-
+    const profile = await loadProfile(res.user.id);
+    if (profile) void insertActivity('sign_up');
     return { success: true };
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    if (loadedUserId.current) {
+      await insertActivity('sign_out');
+    }
+    await supabase.auth.signOut();
+    loadedUserId.current = null;
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+    setPermissions([]);
   };
-
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        signIn,
-        signUp,
-        signOut
-      }}
+      value={{ user, permissions, isLoading, authNotice, can, signIn, signUp, signOut, logActivity }}
     >
       {children}
     </AuthContext.Provider>

@@ -654,6 +654,7 @@ export const InvoiceBillCalculator: React.FC = () => {
 
       {/* Live Journal Preview */}
       <JournalPreviewTable
+        calculator="invoice_bill"
         title={docType === 'invoice' ? 'Live Journal Preview: Sales Invoice' : 'Live Journal Preview: Supplier Bill'}
         subtitle={`Automatically grouped journal postings for ${reference} · ${contactName || 'Party'}`}
         lines={journalLines}
