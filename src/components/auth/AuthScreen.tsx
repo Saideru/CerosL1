@@ -127,7 +127,6 @@ export const AuthScreen: React.FC = () => {
             </h1>
             <p className="text-[13px] text-[#94A3B8] mt-1 leading-relaxed">
               {tab === 'signin' && 'Access the double-entry calculator and verified ledger tools.'}
-              {tab === 'signup' && 'Register your organisation to begin balancing and verifying books.'}
               {tab === 'forgot' && 'Enter your registered work email to receive a secure recovery link.'}
             </p>
 
