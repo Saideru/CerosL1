@@ -26,10 +26,21 @@ import {
   Download,
   AlertCircle,
   CheckCircle2,
-  XCircle
+  XCircle,
+  LayoutGrid
 } from 'lucide-react';
 
-type AdminTab = 'overview' | 'clients' | 'logs';
+type AdminTab = 'overview' | 'clients' | 'menus' | 'logs';
+
+// Table where each calculator's saved records live (Invoice & Bill has none yet)
+const CALCULATOR_TABLES: Record<CalculatorKey, string | null> = {
+  vat: 'vat_tb',
+  invoice_bill: null,
+  payment: 'payment_tb',
+  balancer: 'journal_balancer_tb',
+  statement: 'statement_check_tb',
+  aging: 'aging_tb'
+};
 
 const LOG_WINDOW_DAYS = 30;
 const LOG_FETCH_LIMIT = 1000; // Supabase's default max rows per request
@@ -90,6 +101,11 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
   const [logAction, setLogAction] = useState<ActivityAction | 'all'>('all');
   const [logUserType, setLogUserType] = useState<UserType | 'all'>('client');
   const [logLimit, setLogLimit] = useState(LOG_PAGE_SIZE);
+
+  // Client Menus tab
+  const [menuClientId, setMenuClientId] = useState<string | null>(null);
+  const [savedCounts, setSavedCounts] = useState<Partial<Record<CalculatorKey, number>>>({});
+  const [savedLoading, setSavedLoading] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -292,10 +308,56 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
   const tabs: { id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'menus', label: 'Client Menus', icon: LayoutGrid },
     { id: 'logs', label: 'Trace Logs', icon: ScrollText }
   ];
 
   const canManage = can('clients.manage');
+
+  // ---------- Client Menus ----------
+  const selectedClient = clients.find((c) => c.id === menuClientId) ?? clients[0] ?? null;
+
+  useEffect(() => {
+    if (tab !== 'menus' || !selectedClient) return;
+    let cancelled = false;
+    setSavedLoading(true);
+    const entries = (Object.entries(CALCULATOR_TABLES) as [CalculatorKey, string | null][]).filter(
+      (e): e is [CalculatorKey, string] => e[1] !== null
+    );
+    Promise.all(
+      entries.map(async ([key, table]) => {
+        const { count } = await supabase
+          .from(table)
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', selectedClient.id);
+        return [key, count ?? 0] as const;
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      setSavedCounts(Object.fromEntries(results));
+      setSavedLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, selectedClient?.id]);
+
+  const menuStats = useMemo(() => {
+    const stats = new Map<CalculatorKey, { opens: number; exports: number; lastUsed: string | null }>();
+    for (const k of Object.keys(CALCULATOR_LABELS) as CalculatorKey[]) {
+      stats.set(k, { opens: 0, exports: 0, lastUsed: null });
+    }
+    if (!selectedClient) return stats;
+    for (const l of logs) {
+      if (l.user_id !== selectedClient.id || !l.calculator) continue;
+      const s = stats.get(l.calculator);
+      if (!s) continue;
+      if (l.action === 'open_calculator') s.opens++;
+      if (l.action === 'export_csv' || l.action === 'copy_csv') s.exports++;
+      if (!s.lastUsed) s.lastUsed = l.created_at; // logs are newest-first
+    }
+    return stats;
+  }, [logs, selectedClient]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F1F5F9] dark:bg-[#0B1220] text-[#0F172A] dark:text-[#E2E8F0]">
@@ -384,6 +446,7 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
             <h1 className="text-[22px] font-bold tracking-[-0.02em]">
               {tab === 'overview' && 'Client Activity Overview'}
               {tab === 'clients' && 'Clients & Accounts'}
+              {tab === 'menus' && 'Client Menus'}
               {tab === 'logs' && 'Trace Logs'}
             </h1>
             <p className="text-[13px] text-[#475569] dark:text-[#94A3B8] mt-0.5">
@@ -576,6 +639,121 @@ export const AdminDashboard: React.FC<{ onOpenCalculators: () => void }> = ({ on
               </table>
             </div>
           </section>
+        )}
+
+        {/* ================= CLIENT MENUS ================= */}
+        {tab === 'menus' && (
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+            {/* Client picker */}
+            <section className={`${card} overflow-hidden self-start`}>
+              <div className="px-4 py-3 border-b border-[#E2E8F0] dark:border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#475569] dark:text-[#94A3B8]">
+                Registered clients ({clients.length})
+              </div>
+              <ul className="max-h-[520px] overflow-y-auto divide-y divide-[#E2E8F0] dark:divide-[#1E293B]">
+                {clients.map((c) => {
+                  const isSel = selectedClient?.id === c.id;
+                  return (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        onClick={() => setMenuClientId(c.id)}
+                        className={`w-full text-left px-4 py-3 flex items-center gap-2.5 transition-colors ${
+                          isSel
+                            ? 'bg-[#059669]/10 border-l-2 border-[#059669]'
+                            : 'border-l-2 border-transparent hover:bg-[#F8FAFC] dark:hover:bg-[#0B1220]/60'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#059669] text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                          {c.avatarInitials ?? c.username.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-semibold truncate">{c.name}</div>
+                          <div className="text-[12px] text-[#64748B] dark:text-[#94A3B8] truncate">
+                            @{c.username}
+                            {!c.isActive && ' · deactivated'}
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+                {clients.length === 0 && (
+                  <li className="px-4 py-8 text-center text-[13px] text-[#64748B] dark:text-[#94A3B8]">
+                    {isLoading ? 'Loading clients…' : 'No clients registered yet.'}
+                  </li>
+                )}
+              </ul>
+            </section>
+
+            {/* Selected client's menus */}
+            {selectedClient && (
+              <section className="space-y-4">
+                <div className={`${card} p-5 flex flex-wrap items-center justify-between gap-3`}>
+                  <div>
+                    <h2 className="text-[17px] font-bold">{selectedClient.name}</h2>
+                    <p className="text-[13px] text-[#475569] dark:text-[#94A3B8]">
+                      @{selectedClient.username} · {selectedClient.companyName}
+                      {selectedClient.email && ` · ${selectedClient.email}`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLogUserType('all');
+                      setLogUser(selectedClient.id);
+                      setLogAction('all');
+                      setLogLimit(LOG_PAGE_SIZE);
+                      setTab('logs');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-[#047857] dark:text-[#34D399] bg-[#059669]/10 border border-[#059669]/30 rounded-[8px] hover:bg-[#059669]/20"
+                  >
+                    <ScrollText className="w-3.5 h-3.5" />
+                    View this client's trace log
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {(Object.keys(CALCULATOR_LABELS) as CalculatorKey[]).map((k) => {
+                    const s = menuStats.get(k)!;
+                    const hasTable = CALCULATOR_TABLES[k] !== null;
+                    return (
+                      <div key={k} className={`${card} p-5`}>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-[15px] font-bold">{CALCULATOR_LABELS[k]}</h3>
+                          {s.opens > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] dark:text-[#34D399]">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Used
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">Not used</span>
+                          )}
+                        </div>
+                        <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">Opened</dt>
+                            <dd className="mt-1 text-[20px] font-bold font-mono tabular-nums">{s.opens}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">Exports</dt>
+                            <dd className="mt-1 text-[20px] font-bold font-mono tabular-nums">{s.exports}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">Saved</dt>
+                            <dd className="mt-1 text-[20px] font-bold font-mono tabular-nums">
+                              {!hasTable ? '—' : savedLoading ? '…' : savedCounts[k] ?? 0}
+                            </dd>
+                          </div>
+                        </dl>
+                        <p className="mt-4 pt-3 border-t border-[#E2E8F0] dark:border-[#1E293B] text-[12px] text-[#475569] dark:text-[#94A3B8]">
+                          Last used: {s.lastUsed ? formatDateTime(s.lastUsed) : 'never (last 30 days)'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </div>
         )}
 
         {/* ================= TRACE LOGS ================= */}
