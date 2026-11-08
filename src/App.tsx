@@ -31,7 +31,8 @@ import {
   Info,
   LogOut,
   Building2,
-  LayoutDashboard
+  LayoutDashboard,
+  HelpCircle
 } from 'lucide-react';
 
 export type CalculatorId = CalculatorKey;
@@ -82,6 +83,32 @@ const NAV_ITEMS: NavItem[] = [
   }
 ];
 
+/** Small "?" inside a sidebar menu item (a span, since it sits inside the item button). */
+function NavHelp({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      title={`How the ${label} calculator works`}
+      aria-label={`Guide: how the ${label} calculator works`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onClick();
+        }
+      }}
+      className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-[#94A3B8] hover:text-[#34D399] hover:bg-[#059669]/15 border border-transparent hover:border-[#34D399]/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34D399]"
+    >
+      <HelpCircle className="w-3.5 h-3.5" />
+    </span>
+  );
+}
+
 function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
   const { user, signOut, logActivity } = useAuth();
   const [activeCalc, setActiveCalc] = useState<CalculatorId>('vat');
@@ -101,6 +128,12 @@ function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
   const openTests = () => {
     logActivity('run_acceptance_tests');
     setTestModalOpen(true);
+  };
+
+  // "?" on a menu item: open that calculator and start its guided tour
+  const openTourFor = (id: CalculatorId) => {
+    selectCalculator(id);
+    setTourOpen(true);
   };
 
   const roleLabel = user ? USER_TYPE_LABELS[user.userType] : '';
@@ -197,6 +230,7 @@ function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
                   <div className="leading-tight">{item.label}</div>
                   <div className="text-[11px] text-[#94A3B8] opacity-80">{item.shortDesc}</div>
                 </div>
+                <NavHelp label={item.label} onClick={() => openTourFor(item.id)} />
               </button>
             );
           })}
@@ -319,6 +353,7 @@ function CalculatorWorkspace({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
                     {item.shortDesc}
                   </div>
                 </div>
+                <NavHelp label={item.label} onClick={() => openTourFor(item.id)} />
                 {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#34D399] shrink-0" />}
               </button>
             );

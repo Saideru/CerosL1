@@ -2,6 +2,7 @@ import React, { useState, useId } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { CerosLogo } from '../CerosLogo';
+import { LegalModal, type LegalDoc } from '../LegalModal';
 import {
   Lock,
   AtSign,
@@ -32,6 +33,8 @@ export const AuthScreen: React.FC = () => {
   const { signIn, signUp, authNotice } = useAuth();
   const [tab, setTab] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
+  const legalLink = 'text-[#34D399] hover:underline';
 
   // Sign In
   const [signInUsername, setSignInUsername] = useState('');
@@ -101,8 +104,6 @@ export const AuthScreen: React.FC = () => {
 
         <div className="hidden sm:flex items-center gap-4 text-[12px] text-[#94A3B8]">
           <span>Executive Modernist Accounting</span>
-          <span>·</span>
-          <span>Standard Operating Procedure CL1-SOP-001</span>
         </div>
       </header>
 
@@ -346,6 +347,17 @@ export const AuthScreen: React.FC = () => {
                   <span>{isSubmitting ? 'Creating account…' : 'Create client account'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
+                <p className="text-[11px] text-[#94A3B8] text-center leading-relaxed">
+                  By creating an account, you agree to the{' '}
+                  <button type="button" onClick={() => setLegalDoc('terms')} className={legalLink}>
+                    Terms and Conditions
+                  </button>{' '}
+                  and{' '}
+                  <button type="button" onClick={() => setLegalDoc('privacy')} className={legalLink}>
+                    Privacy Policy
+                  </button>
+                  .
+                </p>
               </form>
             )}
 
@@ -378,9 +390,19 @@ export const AuthScreen: React.FC = () => {
       <footer className="px-6 py-4 border-t border-[#1E293B] text-center text-[12px] text-[#94A3B8]">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Calculations only. Nothing is posted to the ledger.</span>
-          <span className="text-[#64748B]">CerosL1 Web Authentication Gateway</span>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setLegalDoc('terms')} className="hover:text-[#F8FAFC] hover:underline">
+              Terms and Conditions
+            </button>
+            <span className="text-[#334155]">|</span>
+            <button type="button" onClick={() => setLegalDoc('privacy')} className="hover:text-[#F8FAFC] hover:underline">
+              Privacy Policy
+            </button>
+          </div>
         </div>
       </footer>
+
+      {legalDoc && <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} onSwitch={setLegalDoc} />}
     </div>
   );
 };
