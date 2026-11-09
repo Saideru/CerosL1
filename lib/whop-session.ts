@@ -55,7 +55,7 @@ export function redirect(location: string, cookies: string[] = []): Response {
 }
 
 export function callbackUrl(req: Request): string {
-  return new URL('/api/auth/callback', req.url).toString();
+  return new URL('/api/auth/callback', process.env.APP_URL || req.url).toString();
 }
 
 function base64url(bytes: Uint8Array): string {
