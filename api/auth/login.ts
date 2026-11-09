@@ -1,5 +1,5 @@
 // Step 1: send the visitor to Whop to sign in.
-import { PKCE_COOKIE, callbackUrl, cookie, randomString, redirect, sha256base64url } from '../../lib/whop-session';
+import { PKCE_COOKIE, callbackUrl, cookie, randomString, redirect, sha256base64url } from '../../lib/whop-session.js';
 
 export async function GET(request: Request): Promise<Response> {
   const verifier = randomString(32);

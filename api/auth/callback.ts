@@ -10,7 +10,7 @@ import {
   getCookie,
   hasProductAccess,
   redirect
-} from '../../lib/whop-session';
+} from '../../lib/whop-session.js';
 
 export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
